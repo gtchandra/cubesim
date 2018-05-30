@@ -1,0 +1,754 @@
+<body>
+
+            <style>
+                body {
+                    background-color: black;
+                    color: black;
+                }
+                p {
+                    width: 450;
+                    color: white;
+                    font-family: "Arial","Helvetica", sans-serif;
+                    font-size: small;
+                    word-wrap:break-word;
+                }
+                div {
+                    width: 200px;
+                    height: 280px;
+                   }
+    
+                div div {
+                    width: 65px;
+                    height: 65px;
+                    float: left;
+                }
+                div div div {
+                    width: 20px;
+                    height: 20px;
+                    outline: 1px solid;
+                    border-radius: 1px;
+                    float: left;
+                    #-o-transition: all 0.30s ease-in-out;
+                    #box-shadow: 0px 0px 5px 5px rgba(0,0,0, .75);
+                }
+            </style>
+
+            <form id="mainform" onsubmit="cubeSubmit(); return false;">
+            <p>Moves instructions  (uppercase=clockwise):<br> L/l (left) R/r (right) U/u (up) D/d (down) B/b (bottom) F/f (front) S (shuffle)<br>
+            </p>
+              <input id="move" type="text" name="move" autocomplete="off" autofocus="">
+              <button onclick="" type="submit">next!</button><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+			  <button onclick="callRandom();">toggle-random</button>
+              <!--<button onclick="window.clearInterval(document.xmastreeListener);">stop-random</button>-->
+            </form>
+            <div>
+            <div></div>
+            <div id="up">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>                        
+            </div>
+            <div></div>
+            <div id="left">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+            </div>
+            <div id="front">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>                        
+            </div>
+            <div id="right">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>                        
+            </div>
+            <div></div>
+            <div id="down">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+            </div>
+            <div></div>
+            <div></div>
+            <div id="bottom">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+            </div>
+            <div></div>
+        </div>
+		<p>Moves count:<b id="movecounter"></b></p>
+                <br/>
+                <p id="log"></p>
+<script>
+var App=new Cube();
+//App.shuffle();
+App.painter();
+var countmove=0;
+
+//function to activate random moves interactively
+var callRandom = function () {
+	if (typeof(document.xmastreeListener) != "undefined") {
+	//clear interval
+		window.clearInterval(document.xmastreeListener);
+		document.xmastreeListener=undefined;
+	}
+	else{
+		document.xmastreeListener = window.setInterval(randomPost,150);
+	}
+}
+var randomPost = function () {
+	var moves=["L","l","R","r","U","u","D","d","F","f","B","b"];
+        //var moves=["L","R","D","F","B"];
+	var m=moves[Math.floor(Math.random()*moves.length)];
+	document.forms.mainform.move.value=m;
+	cubeSubmit();
+}
+
+//form management function
+var cubeSubmit = function() {
+	var input=document.getElementById("move").value;
+	if (input=="S") {
+			App.shuffle();
+			App.painter();
+	}
+	else 	App.makeMoves(input);
+	document.getElementById("move").value="";
+	var log=document.getElementById("log").innerHTML;
+	countmove++;
+	document.getElementById("movecounter").innerHTML=countmove.toString(); //meglio fare solo rendering esterno e rimuovere il log interno
+	document.getElementById("log").innerHTML+=input;
+	//if (App.isDone()) {window.clearInterval(xmastreeListener);
+}
+
+//baseline face model for Rubik's Cube
+function Face (name,color) {
+	this.rows = new Array(9);
+	this.name = name;
+	for (var i=0; i<9; i++) {
+		this.rows[i]=color;
+	}
+	this.load = function (colormatrix) {
+		for (var j=0;j<9;j++) {
+			this.rows[j]=colormatrix[j];
+		}
+	}
+        this.unload = function () {
+            var t="";
+            for (var j=0;j<9;j++) {
+			t+=this.rows[j];
+		}
+            return t;
+        }
+	this.display=function () {
+	var text="";
+	for (var i in this.rows) {
+			text+=this.rows[i];
+		}
+	return text;
+	}
+	this.a=function(val) {
+		if (typeof(val)==='undefined') {
+				return [this.rows[0],this.rows[1],this.rows[2]];
+		}
+		else
+		{
+				this.rows[0]=val[0];
+				this.rows[1]=val[1];
+				this.rows[2]=val[2];
+				return true;
+		}
+	}
+	this.b=function(val) {
+		if (typeof(val)==='undefined') {
+				return [this.rows[2],this.rows[5],this.rows[8]];
+		}
+		else
+		{
+				this.rows[2]=val[0];
+				this.rows[5]=val[1];
+				this.rows[8]=val[2];
+				return true;
+		}
+	}
+	this.c=function(val) {
+		if (typeof(val)==='undefined') {
+				return [this.rows[8],this.rows[7],this.rows[6]];
+		}
+		else
+		{
+				this.rows[8]=val[0];
+				this.rows[7]=val[1];
+				this.rows[6]=val[2];
+				return true;
+		}
+	}
+	this.d=function(val) {
+		if (typeof(val)==='undefined') {
+				return [this.rows[6],this.rows[3],this.rows[0]];
+		}
+		else
+		{
+				this.rows[6]=val[0];
+				this.rows[3]=val[1];
+				this.rows[0]=val[2];
+				return true;
+		}
+	}
+	this.rotatecw=function (times) {
+		var parkrows=new Array(3);
+		if (typeof(times)==='undefined') times = 1;
+		do {
+			parkrows=[];
+			parkrows=this.a();
+			this.a(this.d());
+			this.d(this.c());
+			this.c(this.b());
+			this.b(parkrows);
+			times--;
+		} while (times)	
+	}	
+}
+//Baseline Rubik's Cube simulator
+function Cube () {
+	this.faces={};
+	this.coreStructure={"up":"white","front":"lime","left":"orangered","right":"purple","down":"yellow","bottom":"cyan"};
+	this.safeinput=["l","L","d","D","u","U","r","R","f","F","b","B"];
+	this.logmove=""; //not used to avoid unnecessary memory consumption, moves are logged through form management function
+	var i=0;
+	//initialize Cube according to CoreStructure model
+	for (var prop in this.coreStructure) {
+		this.faces[prop]= new Face(prop,this.coreStructure[prop]);
+		i++;
+	}
+        this.dump = function() {
+            var dtext="";
+            for (var prop in this.coreStructure) {
+                    dtext+=this.faces[prop].unload();
+                    i++;}
+            return dtext;
+        }
+	this.show = function() {
+		var txt="";
+		for (var prop in this.faces) {
+			console.log(prop+":["+this.faces[prop].display()+"]");
+			//txt+=prop+":["+this.faces[prop].display()+"] ";
+		}
+		return txt;
+	}
+        this.isDone = function() {
+            for (var prop in this.faces) {
+                        for (var i=0;i<this.faces[prop].rows.length;i++) {
+                                    if (this.faces[prop].rows[i]!=this.coreStructure[prop]) {
+                                                return false;}
+                        }
+            }
+            alert ("done !");
+            return true;
+        }
+        
+	this.shuffle = function() {
+		var ran=0;
+		for (var i=0;i<30;i++) {
+			ran=Math.floor(Math.random()*this.safeinput.length);
+			this[this.safeinput[ran]]();
+		}
+	}
+	this.makeMoves = function(input) {
+	for (var i=0;i<input.length;i++) {	
+			if (this.safeinput.indexOf(input[i]) >=0) this[input[i]]();
+			console.log (input[i]);
+			this.painter() //not optimal but I want it to be like that
+		}
+	}
+	this.l = function() {
+		var park=[];
+		park=this.faces.up.d();
+		this.faces.up.d(this.faces.front.d());
+		this.faces.front.d(this.faces.down.d());
+		this.faces.down.d(this.faces.bottom.b());
+		this.faces.bottom.b(park);
+		this.faces.left.rotatecw(3);
+		//this.logmove+="l";
+		}
+	this.L =function() {
+		var park=[];
+		park=this.faces.up.d();
+		this.faces.up.d(this.faces.bottom.b());
+		this.faces.bottom.b(this.faces.down.d());
+		this.faces.down.d(this.faces.front.d());
+		this.faces.front.d(park);
+		this.faces.left.rotatecw(1);
+		//this.logmove+="L";
+		}
+	this.u =function() {
+		var park=[];
+		park=this.faces.front.a();
+		this.faces.front.a(this.faces.left.a());
+		this.faces.left.a(this.faces.bottom.a());
+		this.faces.bottom.a(this.faces.right.a());
+		this.faces.right.a(park);
+		this.faces.up.rotatecw(3);
+		//this.logmove+="u";		
+		}
+	this.U =function() {
+		var park=[];
+		park=this.faces.front.a();
+		this.faces.front.a(this.faces.right.a());
+		this.faces.right.a(this.faces.bottom.a());
+		this.faces.bottom.a(this.faces.left.a());
+		this.faces.left.a(park);
+		this.faces.up.rotatecw(1);
+		//this.logmove+="U";		
+		}
+	this.D =function() {
+		var park=[];
+		park=this.faces.front.c();
+		this.faces.front.c(this.faces.left.c());
+		this.faces.left.c(this.faces.bottom.c());
+		this.faces.bottom.c(this.faces.right.c());
+		this.faces.right.c(park);
+		this.faces.down.rotatecw(1);
+		//this.logmove+="D";		
+		}
+	this.d =function() {
+		var park=[];
+		park=this.faces.front.c();
+		this.faces.front.c(this.faces.right.c());
+		this.faces.right.c(this.faces.bottom.c());
+		this.faces.bottom.c(this.faces.left.c());
+		this.faces.left.c(park);
+		this.faces.down.rotatecw(3);
+		//this.logmove+="d";		
+		}
+	this.R = function() {
+		var park=[];
+		park=this.faces.up.b();
+		this.faces.up.b(this.faces.front.b());
+		this.faces.front.b(this.faces.down.b());
+		this.faces.down.b(this.faces.bottom.d());
+		this.faces.bottom.d(park);
+		this.faces.right.rotatecw(1);
+		//this.logmove+="R";		
+		}
+	this.r =function() {
+		var park=[];
+		park=this.faces.up.b();
+		this.faces.up.b(this.faces.bottom.d());
+		this.faces.bottom.d(this.faces.down.b());
+		this.faces.down.b(this.faces.front.b());
+		this.faces.front.b(park);
+		this.faces.right.rotatecw(3);
+		//this.logmove+="r";		
+		}
+	this.f =function() {
+		var park=[];
+		park=this.faces.up.c();
+		this.faces.up.c(this.faces.right.d());
+		this.faces.right.d(this.faces.down.a());
+		this.faces.down.a(this.faces.left.b());
+		this.faces.left.b(park);
+		this.faces.front.rotatecw(3);
+		//this.logmove+="f";		
+		}
+	this.F =function() {
+		var park=[];
+		park=this.faces.up.c();
+		this.faces.up.c(this.faces.left.b());
+		this.faces.left.b(this.faces.down.a());
+		this.faces.down.a(this.faces.right.d());
+		this.faces.right.d(park);
+		this.faces.front.rotatecw(1);
+		//this.logmove+="F";		
+		}
+	this.b =function() {
+		var park=[];
+		park=this.faces.up.a();
+		this.faces.up.a(this.faces.left.d());
+		this.faces.left.d(this.faces.down.c());
+		this.faces.down.c(this.faces.right.b());
+		this.faces.right.b(park);
+		this.faces.bottom.rotatecw(3);
+		//this.logmove+="b";		
+		}		
+	this.B =function() {
+		var park=[];
+		park=this.faces.up.a();
+		this.faces.up.a(this.faces.right.b());
+		this.faces.right.b(this.faces.down.c());
+		this.faces.down.c(this.faces.left.d());
+		this.faces.left.d(park);
+		this.faces.bottom.rotatecw(1);
+		//this.logmove+="B";		
+		}
+	this.painter=function() {
+		for (var prop in this.coreStructure) {
+			for (var i=0;i<this.faces[prop].rows.length;i++) {
+				if (prop==="bottom") {
+					document.getElementById(prop).children[i].style["background-color"]=this.faces[prop].rows[8-i];
+				}
+				else
+				{
+					document.getElementById(prop).children[i].style["background-color"]=this.faces[prop].rows[i];
+				}
+		}
+		}
+	//console.log("paint done");
+	}
+	this.edgeChecker = function (input_f,input_v,positiononly) {
+            positiononly = typeof positiononly !== 'undefined' ? positiononly : false;
+            if (positiononly) {
+                        if (this.faces[input_f][input_v]()[1]==this.coreStructure[input_f]) {
+                                    return true;
+                                    }
+                        else { 
+                                    return false;
+                                    }
+            }
+            else {
+		if (this.faces[input_f][input_v]()[1]==this.coreStructure[input_f] &&
+                    this.faces[this.coreEdges[input_f][input_v].face][this.coreEdges[input_f][input_v].vector]()[1]==this.coreStructure[this.coreEdges[input_f][input_v].face]) 
+		{
+			return true;
+		} 
+		else 
+		{
+			return false;
+		}
+            }
+	}
+    this.cornerChecker = function (input_f,input_v) {
+            //positiononly = typeof positiononly !== 'undefined' ? positiononly : false;
+            //var corner=[]; 
+            //missing correct position wrong orientation
+            if (this.faces[input_f][input_v]()[0]==this.coreStructure[input_f]
+                && this.faces[this.coreCorners[input_f][input_v][0].face][this.coreCorners[input_f][input_v][0].vector]()[0]== this.coreStructure[this.coreCorners[input_f][input_v][0].face]
+                && this.faces[this.coreCorners[input_f][input_v][1].face][this.coreCorners[input_f][input_v][1].vector]()[0]== this.coreStructure[this.coreCorners[input_f][input_v][1].face])
+            {
+                 return true;
+            }
+            else return false;
+    }
+
+	// Cube Solving Algorithm for white cross
+        this.checkCross = function () {
+                        var edges=['a','b','c','d'];
+                        for (var i in edges) {
+                                    if (this.edgeChecker("up",edges[i],false)==false) {
+                                                return false;
+                                    }
+                        }
+                        return true;                        
+            }
+         this.randMove = function (move) {
+	    var d=Math.floor(Math.random()*4); 
+            while (d>0) {
+                                    this.makeMoves(move);
+                                    d--;
+            }
+	    this.painter();
+	    }
+	    this.cross = function () {
+            // cross check
+            var step=1;
+            var results=[];
+            var norepeat=true;
+            var d=0
+            while (norepeat && step>0) {
+                        step=0;
+                        var counter=0;
+                        while (this.edgeChecker("up","a",true)==false && counter<3) {
+                                    this.b();
+                                    counter++;
+                                    this.painter();
+                                    console.log ("step");
+                                    step++;
+                        }
+                        if (counter==3||counter==0) {
+                                    this.makeMoves("blddLB");
+                        }
+                        counter=0;
+                        while (this.edgeChecker("up","b",true)==false && counter<3) {
+                                    this.r();
+                                    counter++;
+                                    this.painter();
+                                    console.log ("step");
+                                    step++;
+                        }
+                        if (counter==3||counter==0) {
+                                    this.makeMoves("rbddBR");
+                        }
+                        counter=0;
+                        while (this.edgeChecker("up","c",true)==false && counter<3) {
+                                    this.f();
+                                    counter++;
+                                    this.painter();
+                                    console.log ("step");
+                                    step++;
+                        }
+                        if (counter==3||counter==0) {
+                                    this.makeMoves("frddRF");
+                        }
+            
+                        counter=0;
+                        while (this.edgeChecker("up","d",true)==false && counter<3) {
+                                    this.l();
+                                    counter++;
+                                    this.painter();
+                                    console.log ("step");
+                                    step++;
+                        }
+                        if (counter==3||counter==0) {
+                                    this.makeMoves("lfddFL");
+                        }
+                        this.randMove("d");
+                        actdump=this.dump();
+                        if (results.indexOf(actdump)<0) {
+                                    results.push(actdump);
+                        }
+                        else {
+                                    console.log("condition repeated")
+                                    norepeat=false;
+                        }
+            }
+            if (step==0){
+                        //now let's try to fix the edges in the white cross
+                        console.log ("entering final");
+                        var counter=0;
+                        while (!this.checkCross() && counter<100) {					
+                                    this.randMove("u");
+                                    this.makeMoves("RuuruRur");
+                                    while (this.edgeChecker("up","c",false)==false) {
+                                                this.u();
+                                                this.painter();
+                                    }
+                                    counter++;
+                                    console.log (counter);
+			}
+                        if (counter==100) {
+                                    return("FAILED");
+                        }
+                        console.log ("done with "+results.length.toString()+" cycles");
+                        return "OK";
+            }
+            else  {
+                        console.log("solution not found after:"+results.length.toString()+" cycles");
+                        return ("FAILED");
+            }
+            
+            
+        }
+    this.coreEdges={  
+   "up":{  
+      "a":{  
+         "face":"bottom",
+         "vector":"a"
+      },
+      "b":{  
+         "face":"right",
+         "vector":"a"
+      },
+      "c":{  
+         "face":"front",
+         "vector":"a"
+      },
+      "d":{  
+         "face":"left",
+         "vector":"a"
+      }
+   },
+   "front":{
+     "a":{  
+         "face":"up",
+         "vector":"c"
+      },
+      "b":{  
+         "face":"right",
+         "vector":"d"
+      },
+      "c":{  
+         "face":"down",
+         "vector":"a"
+      },
+      "d":{  
+         "face":"left",
+         "vector":"b"
+      }
+   },
+   "left":{
+     "a":{  
+         "face":"up",
+         "vector":"d"
+      },
+      "b":{  
+         "face":"front",
+         "vector":"d"
+      },
+      "c":{  
+         "face":"down",
+         "vector":"d"
+      },
+      "d":{  
+         "face":"bottom",
+         "vector":"b"
+      }
+   },
+   "right":{
+     "a":{  
+         "face":"up",
+         "vector":"b"
+      },
+      "b":{  
+         "face":"bottom",
+         "vector":"d"
+      },
+      "c":{  
+         "face":"down",
+         "vector":"b"
+      },
+      "d":{  
+         "face":"front",
+         "vector":"b"
+      }
+   },
+    "down":{
+     "a":{  
+         "face":"front",
+         "vector":"c"
+      },
+      "b":{  
+         "face":"right",
+         "vector":"c"
+      },
+      "c":{  
+         "face":"bottom",
+         "vector":"c"
+      },
+      "d":{  
+         "face":"left",
+         "vector":"c"
+      }
+   },  
+    "bottom":{
+     "a":{  
+         "face":"up",
+         "vector":"a"
+      },
+      "b":{  
+         "face":"left",
+         "vector":"d"
+      },
+      "c":{  
+         "face":"down",
+         "vector":"c"
+      },
+      "d":{  
+         "face":"right",
+         "vector":"b"
+      }
+   }   
+}
+
+  this.coreCorners={  
+   "up":{  
+      "a":[  
+         {"face":"bottom",
+         "vector":"b"},
+         {"face":"left",
+         "vector":"a"}
+       ],
+      "b":[{  
+         "face":"right",
+         "vector":"b"
+      },{  
+         "face":"bottom",
+         "vector":"a"
+      }],
+      "c":[{  
+         "face":"front",
+         "vector":"b"
+      },{  
+         "face":"right",
+         "vector":"a"
+      }],
+      "d":[{  
+         "face":"front",
+         "vector":"a"
+      },{  
+         "face":"left",
+         "vector":"b"
+      }]
+   },
+    "down":{
+     "a":[{  
+         "face":"front",
+         "vector":"d"
+      },{  
+         "face":"left",
+         "vector":"c"
+      }],
+      "b":[{  
+         "face":"front",
+         "vector":"c"
+      },{  
+         "face":"right",
+         "vector":"d"
+      }],
+      "c":[{  
+         "face":"bottom",
+         "vector":"d"
+      },{  
+         "face":"right",
+         "vector":"c"
+      }],
+      "d":[{  
+         "face":"left",
+         "vector":"d"
+      },{  
+         "face":"bottom",
+         "vector":"c"
+      }]
+   }  
+      
+}
+}
+</script>
+</body></html>
